@@ -1,0 +1,2 @@
+This course teaches us anout using pythonm but it is all about how we take these tools and prove their value to a respective team. 
+I would like to try and take data that can help a pitching coach communicate data to his staff ahead of a game or facing a specific batter, especially when it comes to pitch deception. For example, if there was a man on third and nobody out, what approach would the pitcher take to avoid a sacrifice fly at all costs?
