@@ -1,0 +1,265 @@
+Project title
+
+Pitch recognition to plate approach: a data-driven swing decision model + matchup gameplan generator
+
+Core question
+
+How can we use pitch-level tracking data to identify where a hitter’s swing decisions cost them value — and turn that into a simple, actionable gameplan against a specific pitcher?
+
+Inputs & data
+
+Pitch-level dataset (Statcast via pybaseball)
+
+Pitch location: plate_x, plate_z
+
+Count: balls, strikes
+
+Pitch characteristics: pitch_type, release_speed, pfx_x, pfx_z (movement), (optional: spin, extension if available)
+
+Handedness: stand (batter), p_throws (pitcher)
+
+Outcome fields: events / description (swing, whiff, foul, in-play, called strike/ball)
+
+Scope recommendation
+
+Pick one season (e.g., 2023, 2024, or 2025) or a half-season to manage size
+
+Pick one team’s hitters (clean narrative + manageable)
+
+Combined pipeline overview
+
+You will build three layers that feed each other:
+
+Swing Decision Model (predict swing probability and “good decision” zones)
+
+Expected Value Layer (quantify cost of swings/takes by zone/shape/count)
+
+Gameplan Generator (turn the above into 3–5 matchup rules + visuals)
+
+Part A — Swing decision modeling (Plan 1)
+A1) Define targets
+
+You’ll create two labels, one for prediction, one for coaching value:
+
+Target 1: did_swing (classification)
+
+1 if swing (includes whiff/foul/in-play)
+
+0 if take (called strike/ball)
+
+Target 2: decision_value (evaluation metric)
+
+A numeric value that measures “how good was that decision?”
+
+You can keep this simple and defensible:
+
+If take → value based on ball vs called strike
+
+If swing → value based on whiff/foul/in-play result (and quality if available)
+
+(This lets you say: “We don’t just predict swings — we quantify which swings were costly.”)
+
+A2) Feature engineering
+
+Core features (must-have)
+
+plate_x, plate_z
+
+balls, strikes
+
+pitch_type
+
+release_speed
+
+pfx_x, pfx_z
+
+stand, p_throws
+
+Helpful additions
+
+Previous pitch type (for anticipation)
+
+In-zone flag (based on plate_x/z strike zone bounds)
+
+Pitch “shape buckets” (group pitch types into families)
+
+A3) Modeling approach
+
+Baseline
+
+Logistic regression (easy, explainable)
+
+Primary model
+
+Gradient boosting (XGBoost/LightGBM or sklearn HistGradientBoosting)
+
+Output: P(swing | features)
+
+Evaluation
+
+AUC / log loss for the classifier
+
+Calibration curve (video-friendly)
+
+Most importantly: show that higher model swing probability corresponds to higher positive outcomes
+
+A4) Convert model output into visuals
+
+Create a strike-zone grid (e.g., 30×30 bins):
+
+For each bin, compute:
+
+average model P(swing)
+
+actual swing rate
+
+average decision value (or cost)
+
+Visuals produced
+
+Decision heatmap: model swing probability by zone
+
+Mistake cost heatmap: where swings/takes lose the most value
+
+Top mistake table: hitter’s most costly chase zones + pitch families
+
+Part B — Expected value layer (bridges into Plan 12)
+B1) Define a simple “value” system
+
+Pick one approach:
+
+Option A (simpler): outcome weights
+
+Assign weights to outcomes, like:
+
+take a ball = +
+
+take a called strike = −
+
+swing & miss = −−
+
+foul = small −
+
+ball in play = depends (single/double/HR positive; out negative)
+
+Option B (stronger if available): use Statcast run value / wOBA-based metrics
+
+If your pitch-level data includes a run value column, use that.
+
+Output you need either way
+For each pitch context, estimate:
+
+EV if swing
+
+EV if take
+
+EV swing − EV take (this is your “optimal decision” signal)
+
+B2) Aggregate into coaching insights
+
+For a given hitter (and optionally split vs RHP/LHP), compute:
+
+Worst zones by negative EV swing−take
+
+Worst pitch families (shape buckets) by negative EV
+
+Count-specific weaknesses (0–0 vs 1–2, etc.)
+
+This becomes your “approach foundation” before you even pick a pitcher.
+
+Part C — Matchup gameplan generator (Plan 12)
+
+Now you take the hitter profile + a specific pitcher’s tendencies and generate the plan.
+
+C1) Build pitcher tendency tables
+
+For the selected pitcher:
+
+Pitch mix by count (and by batter handedness)
+
+Location tendencies by pitch type (heatmaps per pitch)
+
+“Go-to” sequences (optional): pitch after pitch
+
+C2) Combine hitter weaknesses + pitcher tendencies
+
+Create a scoring function that ranks “what the hitter is likely to see” AND “what hurts them most.”
+
+Example score for a pitch family + zone + count:
+
+Likelihood (pitcher throws it here in this count)
+× Damage (hitter loses EV here vs that shape)
+= Priority
+
+C3) Generate 3–5 rules (the gameplan card)
+
+Rules should be short, count-aware, and visual-backed. Examples:
+
+Early count hunt: “On 0–0 / 1–0, look middle-up for four-seam; don’t expand glove-side.”
+
+Chase rule: “Lay off sweepers that start off the plate (you lose the most value there).”
+
+Two-strike rule: “With 2 strikes, protect top rail; take below-zone breaker unless it starts middle.”
+
+Sit/ambush: “If previous pitch was a fastball, slider probability spikes — be ready.”
+
+C4) Matchup visuals for the video
+
+Pitcher mix by count chart
+
+Pitcher location heatmap for the top 2 pitches
+
+Your gameplan card (text + mini-icons + 1–2 tiny heatmaps)
+
+Final deliverables (what you submit / show)
+1) Notebook (analysis)
+
+Sections:
+
+Data collection + cleaning
+
+Feature engineering
+
+Swing model (baseline + final)
+
+Decision value framework
+
+Hitter report generation
+
+Pitcher tendency modeling
+
+Matchup gameplan generation
+
+Results + limitations
+
+2) Visual output package
+
+Auto-export images:
+
+hitter_decision_map.png
+
+hitter_mistake_cost_map.png
+
+pitcher_mix_by_count.png
+
+matchup_gameplan_card.png
+
+3) Optional demo app (high value for video)
+
+A small Streamlit tool:
+
+choose hitter
+
+choose pitcher
+
+generates the 4 key visuals + gameplan card live
+
+Suggested success criteria (easy to justify in a presentation)
+
+The swing model predicts swing decisions reasonably (AUC/log loss)
+
+The “mistake cost” map isolates zones that align with intuitive baseball truth (e.g., chase breaking balls down/away)
+
+The matchup card is consistent with pitcher tendencies (count-based mix) and hitter weaknesses
+
+You can demonstrate 1–2 matchups end-to-end in under 2 minutes on video
