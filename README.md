@@ -1,1 +1,2 @@
 How well can pitch-level features such as location, count, pitch type, velocity, movement, and handedness predict hitter swing decisions, and how can those predictions be used to support baseball scouting and approach analysis?
+You can find my presentation [video on YouTube here](https://youtu.be/-U3R1EXVmKA?si=NS5MVxagNBZXZeA7).
